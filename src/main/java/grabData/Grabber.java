@@ -1,7 +1,6 @@
 package grabData;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import jdk.nashorn.api.scripting.URLReader;
 import model.Stock;
 import model.StockDay;
 
@@ -9,8 +8,10 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.temporal.TemporalAmount;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,45 +42,46 @@ public class Grabber {
         //https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=pih&apikey=4MM13XOJEQTR9QD5
         for (Stock s : nasdaqStocks) {
             try {
-                URL url = null;
-                HttpURLConnection request;
+                HttpURLConnection request = null;
                 StringBuilder apirequest = new StringBuilder();
                 apirequest.append("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=");
                 apirequest.append(s.getSymbol().replace("\"", ""));
                 apirequest.append("&apikey=");
                 apirequest.append(apiKey);
-                url = new URL(apirequest.toString());
-                request = (HttpURLConnection) url.openConnection();
-                request.setDoOutput(true);
-                request.setRequestMethod("GET");
-                System.out.println(url.toString());
-                request.connect();
-                //GSON
-                String line;
-                GsonBuilder builder = new GsonBuilder();
-                Gson gson = builder.create();
-                BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-                List<StockDay> days = new ArrayList<>();
-                StockDay[] arrayDays = gson.fromJson(sb.toString(), StockDay[].class);
+                apirequest.append("&datatype=csv");
 
-                System.out.println(arrayDays);
-                for (StockDay sd : arrayDays) {
-                    days.add(sd);
+                BufferedReader br = new BufferedReader(new URLReader(new URL(apirequest.toString())));
+                br.readLine();
+
+                priceList = new ArrayList<>();
+
+                String line;
+                System.out.println(s.getSymbol());
+                while((line=br.readLine())!=null){
+                    //System.out.println(line);
+                    String[] splitted = line.split(",");
+                    Stock stock = new Stock(s.getSymbol());
+                    String[] datums = splitted[0].split("-");
+                    LocalDate date =  LocalDate.of(Integer.parseInt(datums[0]), Integer.parseInt(datums[1]), Integer.parseInt(datums[2]));
+                    priceList.add(new StockDay(stock, date, Double.parseDouble(splitted[1]), Double.parseDouble(splitted[2]), Double.parseDouble(splitted[3]), Double.parseDouble(splitted[4]), Long.parseLong(splitted[5])));
                 }
-                System.out.println(days);
+
+                if(isDarwas(priceList, s.getSymbol())){
+                    darwasList.add(new Stock(s.getSymbol()));
+                    System.out.println(darwasList);
+                }
+
+
                 //GSON
+
 
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            } catch(Exception ex){
-                ex.printStackTrace();
+            } catch(Exception e){
+                e.printStackTrace();
             }
         }
 
@@ -105,13 +107,48 @@ public class Grabber {
 
     }
 
-    public static List<StockDay> toGson(String symbol){
-        boolean done = false;
+    private static boolean isDarwas(List<StockDay> priceList, String symbol) {
+        if(priceList.size()<1){
+            return false;
+        }
+        StockDay high = getHigh(priceList, symbol);
+        StockDay low = getLow(priceList, symbol);
+        StockDay akt = priceList.get(0);
+        StockDay low52 = priceList.get(0);
 
-        while(!done){
+        for (int i = 0; priceList.get(i).getDay().isAfter(priceList.get(0).getDay().minus(Period.ofWeeks(52))) ; i++) {
+            if(priceList.get(i).getHigh()<low52.getHigh()){
+                low52 = priceList.get(i);
+            }
+        }
+
+        if(high.getDay().isBefore(LocalDate.now().minus(Period.ofDays(28)))&&priceList.get(0).getHigh()*1.7>low52.getHigh()){
+            return true;
 
         }
-        return null;
+
+        return false;
     }
+
+    private static StockDay getLow(List<StockDay> priceList, String symbol){
+        StockDay low = priceList.get(0);
+        for (StockDay sd : priceList){
+            if(sd.getHigh()<low.getHigh()){
+                low = sd;
+            }
+        }
+        return low;
+    }
+
+    private static StockDay getHigh(List<StockDay> priceList, String symbol) {
+        StockDay high = priceList.get(0);
+        for(StockDay sd: priceList){
+            if(sd.getHigh()>high.getHigh()){
+                high = sd;
+            }
+        }
+        return high;
+    }
+
 
 }
