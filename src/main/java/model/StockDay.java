@@ -3,7 +3,7 @@ package model;
 import java.time.LocalDate;
 
 public class StockDay {
-    private Stock stock;
+    private String stock;
     private LocalDate day;
     private Double open;
     private Double high;
@@ -13,7 +13,7 @@ public class StockDay {
 
 
 
-    public StockDay(Stock stock, LocalDate day, Double open, Double high, Double low, Double close, Long volume) {
+    public StockDay(String stock, LocalDate day, Double open, Double high, Double low, Double close, Long volume) {
         this.stock = stock;
         this.day = day;
         this.open = open;
@@ -29,11 +29,11 @@ public class StockDay {
     //Getter und Setter
 
 
-    public Stock getStock() {
+    public String getStock() {
         return stock;
     }
 
-    public void setStock(Stock stock) {
+    public void setStock(String stock) {
         this.stock = stock;
     }
 

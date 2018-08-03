@@ -6,15 +6,56 @@ package darvasChecker;
 - Die Marktampel gibt grünes Licht. Der S&P 500 notiert über dem GD 200
  */
 
+import grabData.Grabber;
+import model.Stock;
 import model.StockDay;
 
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DarvasChecker {
 
+    public static void main(String[] args) {
+        List<Stock> resultData = new ArrayList<>();
+        List<Stock> nasdaqStocks = Grabber.allNasdaqStocks();
+        System.out.println(nasdaqStocks);
+        System.out.println(nasdaqStocks.size());
+        List<StockDay> priceList = new ArrayList<>();
+        List<Stock> darwasList = new ArrayList<>();
+
+        String dirPath = "src/CSVs";
+
+        File dir = new File(dirPath);
+        File[] directoryListing = dir.listFiles();
+        if (directoryListing != null) {
+            for (File child : directoryListing) {
+                try (BufferedReader br = new BufferedReader(new FileReader(child))) {
+                    br.readLine();
+                    String line;
+
+                    while((line = br.readLine())!=null){
+                        String[] splitLine = line.split(",");
+                        StockDay sd = new StockDay();
+                        sd.setStock(child.getName());
+                        sd.setDay();
+                    }
+
+
+
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            }
+
+
+    }
 
     public static Boolean isDarvas(List<StockDay> data){
         StockDay low = getLowWeeks(data);
